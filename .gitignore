@@ -1,0 +1,42 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.pdb
+*.bin
+
+# Build artifacts
+OBJs/
+x64/
+x86/
+Debug/
+Release/
+*.obj
+*.ilk
+*.log
+*.tlog
+*.lastbuildstate
+*.manifest
+*.res
+*.pch
+*.ipch
+*.idb
+*.iobj
+*.ipdb
+
+# VS
+.vs/
+*.suo
+*.user
+*.ncb
+*.sdf
+*.opensdf
+*.db
+*.opendb
+
+# Temp / dev
+WORKING/
+autosave.json
+build_output.txt
+inspect_output.txt
+inspect2.txt

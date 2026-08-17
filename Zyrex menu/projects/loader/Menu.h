@@ -1,0 +1,31 @@
+//============ Copyright ImMagic, All rights reserved ============//
+//
+// Purpose: 
+//
+//================================================================//
+
+#pragma once
+
+#include <D3D11.h>
+
+class Menu
+{
+public:
+	static bool Initialize(HWND hWnd, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
+	static void Shutdown();
+
+public:
+	static void Render();
+	static bool HandleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+public:
+	// Internal helper, when using hooked directx
+	static void InvalidateDeviceObjects();
+	static void CreateDeviceObjects();
+
+private:
+	static void	DrawMenu();
+
+private:
+	inline static bool m_bInitialized = false; 
+};
