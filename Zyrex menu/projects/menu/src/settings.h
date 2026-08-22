@@ -649,15 +649,28 @@ namespace football
 	inline bool show_zones{ true };
 
 	// Mode A (normal) settings
-	inline float mode_a_dive_offset{ 0.68f };
-	inline float mode_a_top_threshold{ 2.3f };
+	inline float mode_a_dive_offset{ 0.45f };
+	inline float mode_a_top_threshold{ 4.8f };
+
+	// Mode A zone-specific offsets
+	inline float base_offset{ 0.45f };
+	inline float mid_side_offset{ 0.40f };
+	inline float top_mid_side_offset{ 0.42f };
+	inline float mid_offset_top{ 0.45f };
+	inline float mid_offset_bot{ 0.42f };
+	inline float mid_offset_iframes_top{ 0.45f };
+	inline float mid_offset_iframes_bot{ 0.42f };
 
 	// Mode B (sound-triggered) settings
 	inline bool mode_b_enabled{ true };
 	inline bool mode_b_active{ false };
-	inline float mode_b_dive_offset{ 0.60f };
-	inline float mode_b_top_threshold{ 2.5f };
+	inline float mode_b_dive_offset{ 0.70f };
+	inline float mode_b_top_threshold{ 4.8f };
 	inline float mode_b_duration{ 2.0f };
+	inline float mode_b_base_offset{ 0.70f };
+	inline float mode_b_bot_mid_offset{ 0.50f };
+	inline float mode_b_top_mid_offset{ 0.60f };
+	inline float mode_b_mid_offset{ 0.50f };
 
 	// Mode B debug / control
 	inline bool force_mode_b_active{ false };
@@ -681,9 +694,11 @@ namespace football
 	inline float zone_scale_x{ 1.5f };
 	inline float zone_scale_y{ 3.0f };
 
-	// Panel config (camera-relative)
-	inline float panel_behind_dist{ 9.9f };
+	// Panel config
+	inline float panel_behind_dist{ 1.0f };
 	inline float panel_height_adj{ 0.0f };
+	inline bool gk_use_fixed_yaw{ true };
+	inline float panel_gk_yaw{ 0.0f }; // fixed world yaw (degrees) for GK panel orientation
 
 	// Dive keys
 	inline int dive_key_space{ VK_SPACE };
@@ -698,7 +713,7 @@ namespace football
 
 	// Dive
 	inline float dive_cooldown{ 0.3f };
-	inline float dive_jump_delay{ 0.0f }; // delay between jump and direction key on TOP zones (Lua: modeAJumpDelay)
+	inline float dive_jump_delay{ 0.05f }; // delay between jump and direction key on TOP zones (Lua: modeAJumpDelay)
 
 	// Feature keybinds
 	inline int autodive_key{ 0 }; // unbound
@@ -711,7 +726,7 @@ namespace football
 	inline float auto_m2_dive_offset{ 0.63f };
 	inline float auto_m2_mode_b_dive_offset{ 0.93f };
 	inline float auto_m2_cooldown{ 0.75f };
-	inline float m2_jump_delay{ 0.018f }; // delay between jump key and M2 on TOP zones (Lua: m2JumpDelay)
+	inline float m2_jump_delay{ 0.0f }; // delay between jump key and M2 on TOP zones (Lua: m2JumpDelay)
 
 	// Post Guard
 	inline bool post_guard_enabled{ false };
@@ -728,7 +743,7 @@ namespace football
 	inline float min_bounce_velocity{ 1.0f };
 
 	// Zone fractions
-	inline float mid_fraction{ 0.11f };
+	inline float mid_fraction{ 0.32f };
 	inline float mid_side_fraction{ 0.27f };
 
 	// Ball name fallback
@@ -757,7 +772,9 @@ namespace football
 	inline int rotdive_key_mode{ 1 }; // 1 = hold
 	inline int rotdive_leap_key{ 0x43 }; // C
 	inline float rotdive_delay{ 0.0f }; // seconds before direction tap
-	inline float rotdive_hold{ 0.05f }; // seconds to hold A/D before pressing C
+	inline float rotdive_ad_before_c{ 0.016f }; // seconds A/D held before C fires
+	inline float rotdive_c_hold{ 0.05f }; // seconds C is held
+	inline float rotdive_lock_time{ 0.08f }; // seconds direction is re-pressed after C
 	inline float rotdive_cooldown{ 0.3f };
 }
 

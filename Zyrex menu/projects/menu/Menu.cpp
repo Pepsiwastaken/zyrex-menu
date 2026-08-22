@@ -159,13 +159,43 @@ static void TabGK()
     keybind::keybind_selector("##autodive_key", &settings::football::autodive_key, &settings::football::autodive_key_mode);
     ImGui::Spacing();
 
-    ImGui::SeparatorText("Offsets");
-    ImGui::Text("Mode A Dive Offset");
+    ImGui::SeparatorText("Offsets (Mode A)");
+    ImGui::Text("Base Offset (outer zones)");
     ImGui::SetNextItemWidth(-1.0f);
-    ImGui::SliderFloat("##mode_a_dive_off", &settings::football::mode_a_dive_offset, 0.0f, 2.0f, "%.2f");
-    ImGui::Text("Mode B Dive Offset");
+    ImGui::SliderFloat("##base_offset", &settings::football::base_offset, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Bot Mid-Side Offset");
     ImGui::SetNextItemWidth(-1.0f);
-    ImGui::SliderFloat("##mode_b_dive_off", &settings::football::mode_b_dive_offset, 0.0f, 2.0f, "%.2f");
+    ImGui::SliderFloat("##mid_side_off", &settings::football::mid_side_offset, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Top Mid-Side Offset");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##top_mid_side_off", &settings::football::top_mid_side_offset, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Middle Offset Top");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##mid_off_top", &settings::football::mid_offset_top, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Middle Offset Bottom");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##mid_off_bot", &settings::football::mid_offset_bot, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Middle Offset Top (IFRAMES)");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##mid_off_ifr_top", &settings::football::mid_offset_iframes_top, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Middle Offset Bot (IFRAMES)");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##mid_off_ifr_bot", &settings::football::mid_offset_iframes_bot, 0.0f, 2.0f, "%.2f");
+
+    ImGui::Spacing();
+    ImGui::SeparatorText("Offsets (Mode B)");
+    ImGui::Text("Mode B Base Offset");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##mb_base_off", &settings::football::mode_b_base_offset, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Mode B Bot Mid-Side");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##mb_bot_mid_off", &settings::football::mode_b_bot_mid_offset, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Mode B Top Mid-Side");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##mb_top_mid_off", &settings::football::mode_b_top_mid_offset, 0.0f, 2.0f, "%.2f");
+    ImGui::Text("Mode B Middle Offset");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##mb_mid_off", &settings::football::mode_b_mid_offset, 0.0f, 2.0f, "%.2f");
     ImGui::Text("Dive Cooldown");
     ImGui::SetNextItemWidth(-1.0f);
     ImGui::SliderFloat("##dive_cooldown", &settings::football::dive_cooldown, 0.0f, 2.0f, "%.2f");
@@ -272,6 +302,12 @@ static void TabDisplay()
     ImGui::Spacing();
 
     ImGui::SeparatorText("Panel Position");
+    ImGui::Checkbox("Fixed Yaw Panel", &settings::football::gk_use_fixed_yaw);
+    if (settings::football::gk_use_fixed_yaw) {
+        ImGui::Text("GK Panel Yaw");
+        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::SliderFloat("##panel_gk_yaw", &settings::football::panel_gk_yaw, -180.0f, 180.0f, "%.0f");
+    }
     ImGui::Text("Behind Dist");
     ImGui::SetNextItemWidth(-1.0f);
     ImGui::SliderFloat("##behind_dist", &settings::football::panel_behind_dist, -5.0f, 20.0f, "%.1f");
@@ -412,17 +448,23 @@ static void TabRottedDive()
     ImGui::Text("Direction Delay");
     ImGui::SetNextItemWidth(-1.0f);
     ImGui::SliderFloat("##rotdive_delay", &settings::football::rotdive_delay, 0.0f, 0.2f, "%.3fs");
-    ImGui::Text("A/D Hold Time");
+    ImGui::Text("A/D Before C");
     ImGui::SetNextItemWidth(-1.0f);
-    ImGui::SliderFloat("##rotdive_hold", &settings::football::rotdive_hold, 0.0f, 0.2f, "%.3fs");
+    ImGui::SliderFloat("##rotdive_adc", &settings::football::rotdive_ad_before_c, 0.0f, 0.1f, "%.3fs");
+    ImGui::Text("C Hold Time");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##rotdive_ch", &settings::football::rotdive_c_hold, 0.01f, 0.2f, "%.3fs");
+    ImGui::Text("Lock Time");
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SliderFloat("##rotdive_lt", &settings::football::rotdive_lock_time, 0.0f, 0.3f, "%.3fs");
     ImGui::Text("Cooldown");
     ImGui::SetNextItemWidth(-1.0f);
     ImGui::SliderFloat("##rotdive_cd", &settings::football::rotdive_cooldown, 0.0f, 2.0f, "%.2fs");
 
     ImGui::Spacing();
     ImGui::SeparatorText("Info");
-    ImGui::Text("LEFT/MID_LEFT = A, RIGHT/MID_RIGHT = D, MIDDLE = hit side");
-    ImGui::Text("Hold A/D → tap C → release A/D");
+    ImGui::Text("LEFT/MID_LEFT = A, RIGHT/MID_RIGHT = D, MIDDLE = A (arbitrary)");
+    ImGui::Text("A/D down -> C tap -> A/D up (zero delay)");
 }
 
 static void TabFootballLocked()

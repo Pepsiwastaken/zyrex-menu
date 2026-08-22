@@ -147,10 +147,46 @@ namespace football
                                                   : settings::football::auto_m2_dive_offset;
     }
 
-    static float get_active_offset()
+    // ── Split zone name ───────────────────────────────────────────────────
+    static bool split_zone(const std::string& zn, std::string& row, std::string& col)
     {
-        return settings::football::mode_b_active ? settings::football::mode_b_dive_offset
-                                                  : settings::football::mode_a_dive_offset;
+        size_t us = zn.find('_');
+        if (us == std::string::npos) return false;
+        row = zn.substr(0, us);
+        col = zn.substr(us + 1);
+        return true;
+    }
+
+    static float get_active_offset(const std::string& zone, bool has_iframes = false)
+    {
+        std::string row, col;
+        if (!split_zone(zone, row, col))
+            return settings::football::mode_b_active ? settings::football::mode_b_base_offset
+                                                     : settings::football::base_offset;
+        if (settings::football::mode_b_active)
+        {
+            if (col == "MID_LEFT" || col == "MID_RIGHT")
+                return (row == "TOP") ? settings::football::mode_b_top_mid_offset
+                                      : settings::football::mode_b_bot_mid_offset;
+            if (col == "MIDDLE")
+                return settings::football::mode_b_mid_offset;
+            return settings::football::mode_b_base_offset;
+        }
+        else
+        {
+            if (col == "MID_LEFT" || col == "MID_RIGHT")
+                return (row == "TOP") ? settings::football::top_mid_side_offset
+                                      : settings::football::mid_side_offset;
+            if (col == "MIDDLE")
+            {
+                if (has_iframes)
+                    return (row == "TOP") ? settings::football::mid_offset_iframes_top
+                                          : settings::football::mid_offset_iframes_bot;
+                return (row == "TOP") ? settings::football::mid_offset_top
+                                      : settings::football::mid_offset_bot;
+            }
+            return settings::football::base_offset;
+        }
     }
 
     static float get_active_top_thresh()
@@ -190,16 +226,6 @@ namespace football
     static bool is_m2_held()
     {
         return g_mb2_held_by_user;
-    }
-
-    // ── Split zone name ───────────────────────────────────────────────────
-    static bool split_zone(const std::string& zn, std::string& row, std::string& col)
-    {
-        size_t us = zn.find('_');
-        if (us == std::string::npos) return false;
-        row = zn.substr(0, us);
-        col = zn.substr(us + 1);
-        return true;
     }
 
     // ── Ball data struct ──────────────────────────────────────────────────
@@ -355,7 +381,9 @@ namespace football
         return zone;
     }
 
-    // ── Update camera-relative panel ──────────────────────────────────────
+    // ── Update panel ──────────────────────────────────────────────────────
+    // Auto GK: panel behind player (HRP rotation, back = goal)
+    // Auto M2: camera-relative (original style)
     static void update_panel()
     {
         if (game::local_character.address == 0) return;
@@ -370,34 +398,52 @@ namespace football
             hrp_pos = prim.get_position();
         } catch (...) { return; }
 
-        // Camera look from Camera instance rotation (reliable, not VP matrix)
-        math::vector3 cam_look{ 0, 0, 1 };
-        try {
-            if (game::camera) {
-                math::matrix3 rot = memory->read<math::matrix3>(game::camera + Offsets::Camera::Rotation);
-                cam_look = rot.forward();
-                float len = std::sqrtf(cam_look.x * cam_look.x + cam_look.y * cam_look.y + cam_look.z * cam_look.z);
-                if (len > 0.001f) { float inv = 1.0f / len; cam_look = { cam_look.x * inv, cam_look.y * inv, cam_look.z * inv }; }
-            }
-        } catch (...) {}
-
-        // Flatten
-        math::vector3 flat = { cam_look.x, 0, cam_look.z };
-        float flen = std::sqrtf(flat.x * flat.x + flat.z * flat.z);
-        if (flen < 0.001f) flat = { 0, 0, 1 };
-        else { float inv = 1.0f / flen; flat = { flat.x * inv, 0, flat.z * inv }; }
-
+        math::vector3 flat{ 0, 0, 1 };
         float bd = settings::football::panel_behind_dist;
-        float ha = settings::football::panel_height_adj;
-        g_panel_origin = { hrp_pos.x + flat.x * bd, hrp_pos.y + ha, hrp_pos.z + flat.z * bd };
 
-        // Match Lua exactly:
-        // panelCF = CFrame.new(behindPos, behindPos + flatLook) * CFrame.Angles(0, pi, 0)
-        // After the pi flip, LookVector becomes -flatLook.
-        // CFrame:PointToObjectSpace uses the full local basis, so keep a persistent
-        // panel_right basis instead of rebuilding it differently in prediction/render.
-        g_panel_normal = { -flat.x, 0, -flat.z };
-        g_panel_right  = { -flat.z, 0,  flat.x };
+        if (settings::football::autodive_enabled)
+        {
+            if (settings::football::gk_use_fixed_yaw)
+            {
+                float yaw = settings::football::panel_gk_yaw * 3.14159265f / 180.0f;
+                flat = { -std::sinf(yaw), 0, -std::cosf(yaw) };
+                g_panel_origin = { hrp_pos.x - flat.x * bd, hrp_pos.y + settings::football::panel_height_adj, hrp_pos.z - flat.z * bd };
+                g_panel_normal = { flat.x, 0, flat.z };
+                g_panel_right  = { -flat.z, 0,  flat.x };
+            }
+            else
+            {
+                try {
+                    if (game::camera) {
+                        math::matrix3 rot = memory->read<math::matrix3>(game::camera + Offsets::Camera::Rotation);
+                        math::vector3 cam_look = rot.forward();
+                        flat = { cam_look.x, 0, cam_look.z };
+                        float flen = std::sqrtf(flat.x * flat.x + flat.z * flat.z);
+                        if (flen < 0.001f) flat = { 0, 0, 1 };
+                        else { float inv = 1.0f / flen; flat = { flat.x * inv, 0, flat.z * inv }; }
+                    }
+                } catch (...) {}
+                g_panel_origin = { hrp_pos.x + flat.x * bd, hrp_pos.y + settings::football::panel_height_adj, hrp_pos.z + flat.z * bd };
+                g_panel_normal = { -flat.x, 0, -flat.z };
+                g_panel_right  = { -flat.z, 0,  flat.x };
+            }
+        }
+        else
+        {
+            try {
+                if (game::camera) {
+                    math::matrix3 rot = memory->read<math::matrix3>(game::camera + Offsets::Camera::Rotation);
+                    math::vector3 cam_look = rot.forward();
+                    flat = { cam_look.x, 0, cam_look.z };
+                    float flen = std::sqrtf(flat.x * flat.x + flat.z * flat.z);
+                    if (flen < 0.001f) flat = { 0, 0, 1 };
+                    else { float inv = 1.0f / flen; flat = { flat.x * inv, 0, flat.z * inv }; }
+                }
+            } catch (...) {}
+            g_panel_origin = { hrp_pos.x + flat.x * bd, hrp_pos.y + settings::football::panel_height_adj, hrp_pos.z + flat.z * bd };
+            g_panel_normal = { -flat.x, 0, -flat.z };
+            g_panel_right  = { -flat.z, 0,  flat.x };
+        }
 
         float rlen = std::sqrtf(g_panel_right.x * g_panel_right.x + g_panel_right.z * g_panel_right.z);
         if (rlen > 0.001f) {
@@ -603,7 +649,7 @@ namespace football
         SendInput(1, &up, sizeof(INPUT));
     }
 
-    // ── Dive: Lua order — Jump → delay → direction key (no MB1) ──
+    // ── Dive: Lua order — Jump → delay → [MB1 for left/right] → direction key ──
     static void do_dive(const std::string& zone, bool use_random_key = false)
     {
         if (zone.empty()) return;
@@ -640,6 +686,19 @@ namespace football
                 Sleep((DWORD)(settings::football::dive_jump_delay * 1000.0f));
         }
 
+        // Fire MB1 for left/right zones (hal script behavior)
+        bool is_left_right = (col == "LEFT" || col == "MID_LEFT" || col == "RIGHT" || col == "MID_RIGHT");
+        if (is_left_right) {
+            INPUT mb1_down = {};
+            mb1_down.type = INPUT_MOUSE;
+            mb1_down.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+            SendInput(1, &mb1_down, sizeof(INPUT));
+            INPUT mb1_up = {};
+            mb1_up.type = INPUT_MOUSE;
+            mb1_up.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+            SendInput(1, &mb1_up, sizeof(INPUT));
+        }
+
         tap_key(dir_key);
         g_dive_cd = g_now + (double)settings::football::dive_cooldown;
     }
@@ -659,32 +718,28 @@ namespace football
         }
 
         // M2 always. If already held, release only. If not held, tap down/up.
+        INPUT m2_down = {};
+        m2_down.type = INPUT_MOUSE;
+        m2_down.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+        INPUT m2_up = {};
+        m2_up.type = INPUT_MOUSE;
+        m2_up.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
+
         if (is_m2_held())
         {
-            INPUT up = {};
-            up.type = INPUT_MOUSE;
-            up.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
-            SendInput(1, &up, sizeof(INPUT));
+            SendInput(1, &m2_up, sizeof(INPUT));
         }
         else
         {
-            INPUT down = {};
-            down.type = INPUT_MOUSE;
-            down.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
-            SendInput(1, &down, sizeof(INPUT));
-
-            Sleep(1);
-
-            INPUT up = {};
-            up.type = INPUT_MOUSE;
-            up.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
-            SendInput(1, &up, sizeof(INPUT));
+            SendInput(1, &m2_down, sizeof(INPUT));
+            Sleep(16);
+            SendInput(1, &m2_up, sizeof(INPUT));
         }
 
         g_auto_m2_cd = g_now + (double)settings::football::auto_m2_cooldown;
     }
 
-    // ── Rotted Dive: tap direction (A/D) then leap key (C) ──────────────
+    // ── Rotted Dive: hold direction then tap leap key ─────────────────────
     static void do_rotted_dive(const std::string& zone, const math::vector3& hit)
     {
         if (zone.empty()) return;
@@ -696,11 +751,8 @@ namespace football
             dir_key = 0x41; // A
         else if (col == "RIGHT" || col == "MID_RIGHT")
             dir_key = 0x44; // D
-        else if (col == "MIDDLE") {
-            float lx = (hit.x - g_panel_origin.x) * g_panel_right.x
-                      + (hit.z - g_panel_origin.z) * g_panel_right.z;
-            dir_key = (lx < 0.0f) ? 0x41 : 0x44;
-        }
+        else if (col == "MIDDLE")
+            dir_key = 0x41; // A (arbitrary)
 
         WORD leap_key = (WORD)settings::football::rotdive_leap_key;
         if (leap_key == 0) return;
@@ -708,38 +760,51 @@ namespace football
         if (settings::football::rotdive_delay > 0.0f)
             Sleep((DWORD)(settings::football::rotdive_delay * 1000.0f));
 
-        // Release the opposite direction if held
-        bool holding_a = (GetAsyncKeyState(0x41) & 0x8000) != 0;
-        bool holding_d = (GetAsyncKeyState(0x44) & 0x8000) != 0;
-        if (dir_key == 0x41 && holding_d) {
-            INPUT up = {}; up.type = INPUT_KEYBOARD;
-            up.ki.wScan = (WORD)MapVirtualKeyA(0x44, MAPVK_VK_TO_VSC);
-            up.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-            SendInput(1, &up, sizeof(INPUT));
-        }
-        if (dir_key == 0x44 && holding_a) {
-            INPUT up = {}; up.type = INPUT_KEYBOARD;
-            up.ki.wScan = (WORD)MapVirtualKeyA(0x41, MAPVK_VK_TO_VSC);
-            up.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-            SendInput(1, &up, sizeof(INPUT));
-        }
-
-        // Hold A/D down
         WORD scan_dir = (WORD)MapVirtualKeyA(dir_key, MAPVK_VK_TO_VSC);
+        WORD scan_c = (WORD)MapVirtualKeyA(leap_key, MAPVK_VK_TO_VSC);
+
+        // 1. A/D down
         INPUT down_dir = {};
         down_dir.type = INPUT_KEYBOARD;
         down_dir.ki.wScan = scan_dir;
         down_dir.ki.dwFlags = KEYEVENTF_SCANCODE;
         SendInput(1, &down_dir, sizeof(INPUT));
 
-        // Let game register the directional hold
-        if (settings::football::rotdive_hold > 0.0f)
-            Sleep((DWORD)(settings::football::rotdive_hold * 1000.0f));
+        // 2. Wait for game to register A/D
+        if (settings::football::rotdive_ad_before_c > 0.0f)
+            Sleep((DWORD)(settings::football::rotdive_ad_before_c * 1000.0f));
 
-        // Tap C while A/D is held
-        tap_key(leap_key);
+        // 3. C down + up (tap)
+        INPUT down_c = {};
+        down_c.type = INPUT_KEYBOARD;
+        down_c.ki.wScan = scan_c;
+        down_c.ki.dwFlags = KEYEVENTF_SCANCODE;
+        SendInput(1, &down_c, sizeof(INPUT));
 
-        // Release A/D
+        if (settings::football::rotdive_c_hold > 0.0f)
+            Sleep((DWORD)(settings::football::rotdive_c_hold * 1000.0f));
+
+        INPUT up_c = {};
+        up_c.type = INPUT_KEYBOARD;
+        up_c.ki.wScan = scan_c;
+        up_c.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+        SendInput(1, &up_c, sizeof(INPUT));
+
+        // 4. Repeatedly re-press direction to lock out opposite key
+        {
+            int iterations = (int)(settings::football::rotdive_lock_time / 0.02f);
+            if (iterations < 1) iterations = 1;
+            for (int i = 0; i < iterations; i++) {
+                Sleep(20);
+                INPUT down = {};
+                down.type = INPUT_KEYBOARD;
+                down.ki.wScan = scan_dir;
+                down.ki.dwFlags = KEYEVENTF_SCANCODE;
+                SendInput(1, &down, sizeof(INPUT));
+            }
+        }
+
+        // 5. A/D up
         INPUT up_dir = {};
         up_dir.type = INPUT_KEYBOARD;
         up_dir.ki.wScan = scan_dir;
@@ -904,10 +969,18 @@ namespace football
         // ── Jump Power (background thread) ────────────────────────────────
         {
             static bool prev_jp_active = false;
+            static uint8_t orig_use_jp = 0;
+            static float orig_jp = 50.0f;
+            static float orig_jh = 7.2f;
             bool jp_active = settings::movement::jump_power::enabled || g_jp_kb_active;
             auto humanoid = game::local_character.find_first_child_by_class("Humanoid");
 
             if (jp_active && !prev_jp_active && humanoid.address != 0) {
+                // Save original values before we touch them
+                orig_use_jp = memory->read<uint8_t>(humanoid.address + Offsets::Humanoid::UseJumpPower);
+                orig_jp = memory->read<float>(humanoid.address + Offsets::Humanoid::JumpPower);
+                orig_jh = memory->read<float>(humanoid.address + Offsets::Humanoid::JumpHeight);
+
                 g_jp_hum_addr.store(humanoid.address);
                 g_jp_value.store(settings::movement::jump_power::value);
                 g_jp_jh_value.store(settings::movement::jump_power::value * settings::movement::jump_power::value * 0.00288f);
@@ -917,9 +990,9 @@ namespace football
 
             if (!jp_active && prev_jp_active && humanoid.address != 0) {
                 g_jp_thread_running.store(false);
-                memory->write<uint8_t>(humanoid.address + Offsets::Humanoid::UseJumpPower, 0);
-                memory->write<float>(humanoid.address + Offsets::Humanoid::JumpPower, 50.0f);
-                memory->write<float>(humanoid.address + Offsets::Humanoid::JumpHeight, 7.2f);
+                memory->write<uint8_t>(humanoid.address + Offsets::Humanoid::UseJumpPower, orig_use_jp);
+                memory->write<float>(humanoid.address + Offsets::Humanoid::JumpPower, orig_jp);
+                memory->write<float>(humanoid.address + Offsets::Humanoid::JumpHeight, orig_jh);
             }
 
             if (jp_active && humanoid.address != 0) {
@@ -1015,7 +1088,7 @@ namespace football
 
                     // Post guard
                     std::string final_zone = apply_post_guard(zone);
-                    float offset = get_active_offset();
+                    float offset = get_active_offset(final_zone);
                     if (final_zone != zone) {
                         offset += settings::football::post_guard_offset_bonus;
                         settings::football::current_zone = final_zone;

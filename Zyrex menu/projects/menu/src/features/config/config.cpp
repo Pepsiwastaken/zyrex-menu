@@ -457,10 +457,21 @@ void config::save()
 	j["football"]["show_zones"] = settings::football::show_zones;
 	j["football"]["mode_a_dive_offset"] = settings::football::mode_a_dive_offset;
 	j["football"]["mode_a_top_threshold"] = settings::football::mode_a_top_threshold;
+	j["football"]["base_offset"] = settings::football::base_offset;
+	j["football"]["mid_side_offset"] = settings::football::mid_side_offset;
+	j["football"]["top_mid_side_offset"] = settings::football::top_mid_side_offset;
+	j["football"]["mid_offset_top"] = settings::football::mid_offset_top;
+	j["football"]["mid_offset_bot"] = settings::football::mid_offset_bot;
+	j["football"]["mid_offset_iframes_top"] = settings::football::mid_offset_iframes_top;
+	j["football"]["mid_offset_iframes_bot"] = settings::football::mid_offset_iframes_bot;
 	j["football"]["mode_b_enabled"] = settings::football::mode_b_enabled;
 	j["football"]["mode_b_dive_offset"] = settings::football::mode_b_dive_offset;
 	j["football"]["mode_b_top_threshold"] = settings::football::mode_b_top_threshold;
 	j["football"]["mode_b_duration"] = settings::football::mode_b_duration;
+	j["football"]["mode_b_base_offset"] = settings::football::mode_b_base_offset;
+	j["football"]["mode_b_bot_mid_offset"] = settings::football::mode_b_bot_mid_offset;
+	j["football"]["mode_b_top_mid_offset"] = settings::football::mode_b_top_mid_offset;
+	j["football"]["mode_b_mid_offset"] = settings::football::mode_b_mid_offset;
 	j["football"]["mode_b_effect_enabled"] = settings::football::mode_b_effect_enabled;
 	j["football"]["mid_top_threshold"] = settings::football::mid_top_threshold;
 	j["football"]["mid_iframe_top_threshold"] = settings::football::mid_iframe_top_threshold;
@@ -468,6 +479,8 @@ void config::save()
 	j["football"]["zone_scale_y"] = settings::football::zone_scale_y;
 	j["football"]["panel_behind_dist"] = settings::football::panel_behind_dist;
 	j["football"]["panel_height_adj"] = settings::football::panel_height_adj;
+	j["football"]["panel_gk_yaw"] = settings::football::panel_gk_yaw;
+	j["football"]["gk_use_fixed_yaw"] = settings::football::gk_use_fixed_yaw;
 	j["football"]["dive_key_space"] = settings::football::dive_key_space;
 	j["football"]["dive_key_left"] = settings::football::dive_key_left;
 	j["football"]["dive_key_right"] = settings::football::dive_key_right;
@@ -507,7 +520,9 @@ void config::save()
 	j["football"]["rotdive_key_mode"] = settings::football::rotdive_key_mode;
 	j["football"]["rotdive_leap_key"] = settings::football::rotdive_leap_key;
 	j["football"]["rotdive_delay"] = settings::football::rotdive_delay;
-	j["football"]["rotdive_hold"] = settings::football::rotdive_hold;
+	j["football"]["rotdive_ad_before_c"] = settings::football::rotdive_ad_before_c;
+	j["football"]["rotdive_c_hold"] = settings::football::rotdive_c_hold;
+	j["football"]["rotdive_lock_time"] = settings::football::rotdive_lock_time;
 	j["football"]["rotdive_cooldown"] = settings::football::rotdive_cooldown;
 
 	// -- playerlist whitelist --
@@ -997,17 +1012,30 @@ void config::load()
 		settings::football::show_zones = f.value("show_zones", true);
 		settings::football::mode_a_dive_offset = f.value("mode_a_dive_offset", 0.45f);
 		settings::football::mode_a_top_threshold = f.value("mode_a_top_threshold", 4.8f);
+		settings::football::base_offset = f.value("base_offset", 0.45f);
+		settings::football::mid_side_offset = f.value("mid_side_offset", 0.40f);
+		settings::football::top_mid_side_offset = f.value("top_mid_side_offset", 0.42f);
+		settings::football::mid_offset_top = f.value("mid_offset_top", 0.45f);
+		settings::football::mid_offset_bot = f.value("mid_offset_bot", 0.42f);
+		settings::football::mid_offset_iframes_top = f.value("mid_offset_iframes_top", 0.45f);
+		settings::football::mid_offset_iframes_bot = f.value("mid_offset_iframes_bot", 0.42f);
 		settings::football::mode_b_enabled = f.value("mode_b_enabled", false);
-		settings::football::mode_b_dive_offset = f.value("mode_b_dive_offset", 0.60f);
+		settings::football::mode_b_dive_offset = f.value("mode_b_dive_offset", 0.70f);
 		settings::football::mode_b_top_threshold = f.value("mode_b_top_threshold", 4.8f);
 		settings::football::mode_b_duration = f.value("mode_b_duration", 2.f);
+		settings::football::mode_b_base_offset = f.value("mode_b_base_offset", 0.70f);
+		settings::football::mode_b_bot_mid_offset = f.value("mode_b_bot_mid_offset", 0.50f);
+		settings::football::mode_b_top_mid_offset = f.value("mode_b_top_mid_offset", 0.60f);
+		settings::football::mode_b_mid_offset = f.value("mode_b_mid_offset", 0.50f);
 		settings::football::mode_b_effect_enabled = f.value("mode_b_effect_enabled", true);
 		settings::football::mid_top_threshold = f.value("mid_top_threshold", 4.8f);
 		settings::football::mid_iframe_top_threshold = f.value("mid_iframe_top_threshold", 4.8f);
 		settings::football::zone_scale_x = f.value("zone_scale_x", 1.5f);
 		settings::football::zone_scale_y = f.value("zone_scale_y", 3.0f);
-		settings::football::panel_behind_dist = f.value("panel_behind_dist", -0.6f);
+		settings::football::panel_behind_dist = f.value("panel_behind_dist", 1.0f);
 		settings::football::panel_height_adj = f.value("panel_height_adj", 0.f);
+		settings::football::panel_gk_yaw = f.value("panel_gk_yaw", 0.f);
+		settings::football::gk_use_fixed_yaw = f.value("gk_use_fixed_yaw", true);
 		settings::football::dive_key_space = f.value("dive_key_space", VK_SPACE);
 		settings::football::dive_key_left = f.value("dive_key_left", 0x43);
 		settings::football::dive_key_right = f.value("dive_key_right", 0x5A);
@@ -1047,7 +1075,9 @@ void config::load()
 		settings::football::rotdive_key_mode = f.value("rotdive_key_mode", 1);
 		settings::football::rotdive_leap_key = f.value("rotdive_leap_key", 0x43);
 		settings::football::rotdive_delay = f.value("rotdive_delay", 0.0f);
-		settings::football::rotdive_hold = f.value("rotdive_hold", 0.05f);
+		settings::football::rotdive_ad_before_c = f.value("rotdive_ad_before_c", 0.016f);
+		settings::football::rotdive_c_hold = f.value("rotdive_c_hold", 0.05f);
+		settings::football::rotdive_lock_time = f.value("rotdive_lock_time", 0.08f);
 		settings::football::rotdive_cooldown = f.value("rotdive_cooldown", 0.3f);
 	}
 
